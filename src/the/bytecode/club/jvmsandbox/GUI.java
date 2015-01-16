@@ -22,14 +22,11 @@ public class GUI extends JFrame {
 		lblNewLabel.setBounds(10, 11, 106, 14);
 		getContentPane().add(lblNewLabel);
 		
-		textField = new JTextField();
-		textField.setBounds(159, 8, 226, 20);
-		getContentPane().add(textField);
-		textField.setColumns(10);
-		
-		JButton btnNewButton = new JButton("Open");
-		btnNewButton.setBounds(411, 7, 89, 23);
-		getContentPane().add(btnNewButton);
+		txtExamplejar = new JTextField();
+		txtExamplejar.setText("example.jar");
+		txtExamplejar.setBounds(159, 8, 340, 20);
+		getContentPane().add(txtExamplejar);
+		txtExamplejar.setColumns(10);
 		
 		JLabel lblMainClass = new JLabel("Main Class:");
 		lblMainClass.setBounds(7, 42, 142, 14);
@@ -46,7 +43,7 @@ public class GUI extends JFrame {
 			public void actionPerformed(ActionEvent arg0) {
 				try {
 					String[] params = null;
-					Class<?> c = JVMSandbox.loadIntoClassloader(textField.getText(), txtOrgexampleentrymain.getText());
+					Class<?> c = JVMSandbox.loadIntoClassloader(txtExamplejar.getText(), txtOrgexampleentrymain.getText());
 					Method method = c.getMethod("main", String[].class);
 					method.invoke (null, (Object)params);
 					JVMSandbox.gui.setVisible(false);
@@ -60,6 +57,6 @@ public class GUI extends JFrame {
 	}
 
 	private static final long serialVersionUID = 3200663620236488765L;
-	private JTextField textField;
+	private JTextField txtExamplejar;
 	private JTextField txtOrgexampleentrymain;
 }
