@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Class-Path: .
+Main-Class: the.bytecode.club.jvmsandbox.JVMSandbox
+PreMain-Class: the.bytecode.club.jvmsandbox.JVMSandbox
+Can-Redefine-Classes: True
+
