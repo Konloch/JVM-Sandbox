@@ -1,6 +1,6 @@
 JVM Sandbox - Utilize Java Agents and ASM to manipulate then override Java SE classes.
 
-Just a simple POC to block Runtime.exec for any Java jar, the final version is in https://github.com/Konloch/bytecode-viewer
+Just a simple POC to block Runtime.exec for any Java jar
 
 This should work on all VMs on all OSs, if it doesn't please send an email to konloch@gmail.com with your OS and JVM information, thank you.
 
@@ -13,3 +13,6 @@ How to use this:
 
 Features:
     Blocks all Runtime.exec calls
+    Blocks the process builder
+    Blocks awt.Robot
+    Can block JNI (LOL)
