@@ -14,6 +14,10 @@ import java.net.URLClassLoader;
 
 public class ClassPathHack {
     private static final Class<?>[] parameters = new Class<?>[] {URL.class};
+    public static final Class<?>[] parameters2 = new Class<?>[] {URL.class};
+    protected static final Class<?>[] parameters3 = new Class<?>[] {URL.class};
+    
+    //private the.bytecode.club.jvmsandbox.test.ClassPathHack cock = null;
 
     public static void addFile(String s) throws IOException
     {
@@ -25,7 +29,6 @@ public class ClassPathHack {
     {
         addURL(f.toURI().toURL());
     }
-
     public static void addURL(URL u) throws IOException
     {
         URLClassLoader sysloader = (URLClassLoader) ClassLoader.getSystemClassLoader();

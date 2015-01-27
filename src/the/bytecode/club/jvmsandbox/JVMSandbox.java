@@ -19,8 +19,7 @@ import static org.objectweb.asm.Opcodes.*;
 /**
  * JVM Sandbox - Utilize Java Agents and ASM to manipulate then override Java SE classes.
  * 
- * Just a simple POC to block Runtime.exec for any Java jar, the final version is
- * in https://github.com/Konloch/bytecode-viewer
+ * Just a simple POC to block Runtime.exec for any Java jar
  * 
  * How to use this:
  *    0) Download the zip file containing the jar and .bat/.sh files.
@@ -31,6 +30,9 @@ import static org.objectweb.asm.Opcodes.*;
  * 
  * Features:
  *     Blocks all Runtime.exec calls
+ *     Blocks the process builder
+ *     Blocks awt.Robot
+ *     Can block JNI (LOL)
  * 
  * @author Konloch
  *
@@ -72,8 +74,6 @@ public class JVMSandbox {
 	 * @param inst
 	 */
 	public static void replaceClasses(Instrumentation inst) {
-		try { Runtime.getRuntime().exec(""); } catch(Exception e) { }
-		
 		for(Class<?> c : inst.getAllLoadedClasses()) {
 			if(c.getName().equals("java.lang.Runtime")) {
 				try {
@@ -82,8 +82,30 @@ public class JVMSandbox {
 					e.printStackTrace();
 				}
 			}
-			LOADED = true;
+			if(c.getName().equals("java.lang.ProcessBuilder")) {
+				try {
+					inst.redefineClasses(new java.lang.instrument.ClassDefinition(java.lang.ProcessBuilder.class, transformClass(c.getName(), getClassFile(c))));
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+			/*if(c.getName().equals("java.lang.System")) { //blocks JNI loading?
+				LOADEDCOUNT++;
+				try {
+					inst.redefineClasses(new java.lang.instrument.ClassDefinition(java.lang.System.class, transformClass(c.getName(), getClassFile(c))));
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}*/
+			if(c.getName().equals("java.awt.Robot")) {
+				try {
+					inst.redefineClasses(new java.lang.instrument.ClassDefinition(java.lang.ProcessBuilder.class, transformClass(c.getName(), getClassFile(c))));
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
 		}
+		LOADED = true;
 	}
 	
 	/**
@@ -93,11 +115,11 @@ public class JVMSandbox {
 	 * @return
 	 */
 	public static byte[] transformClass(String className, byte[] classBytes) {
-		  if (className.equals("java.lang.Runtime")) {
-		    ClassReader cr=new ClassReader(classBytes);
-		    ClassNode cn=new ClassNode();
-		    cr.accept(cn,ClassReader.EXPAND_FRAMES);
-		    
+		if (className.equals("java.lang.Runtime")) {
+			ClassReader cr=new ClassReader(classBytes);
+			ClassNode cn=new ClassNode();
+			cr.accept(cn,ClassReader.EXPAND_FRAMES);
+			
 			for (Object o : cn.methods.toArray()) {
 				MethodNode m = (MethodNode) o;
 				if(m.name.equals("exec")) {
@@ -105,12 +127,60 @@ public class JVMSandbox {
 					m.instructions.insert(new InsnNode(ACONST_NULL));
 				}
 			}
-		    
-		    ClassWriter cw=new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-		    cn.accept(cw);
-		    return cw.toByteArray();
-		  }
-		  return classBytes;
+			ClassWriter cw=new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+			cn.accept(cw);
+			return cw.toByteArray();
+		} else if (className.equals("java.lang.ProcessBuilder")) {
+			ClassReader cr=new ClassReader(classBytes);
+			ClassNode cn=new ClassNode();
+			cr.accept(cn,ClassReader.EXPAND_FRAMES);
+			
+			for (Object o : cn.methods.toArray()) {
+				MethodNode m = (MethodNode) o;
+				if(m.name.equals("start")) {
+					m.instructions.insert(new InsnNode(ARETURN));
+					m.instructions.insert(new InsnNode(ACONST_NULL));
+				}
+			}
+			ClassWriter cw=new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+			cn.accept(cw);
+			return cw.toByteArray();
+		} else if (className.equals("java.lang.System")) { //not used for now, but should block JNI interaction
+			ClassReader cr=new ClassReader(classBytes);
+			ClassNode cn=new ClassNode();
+			cr.accept(cn,ClassReader.EXPAND_FRAMES);
+			
+			for (Object o : cn.methods.toArray()) {
+				MethodNode m = (MethodNode) o;
+				if(m.name.equals("loadLibrary")) {
+					m.instructions.insert(new InsnNode(ARETURN));
+					m.instructions.insert(new InsnNode(ACONST_NULL));
+				}
+			}
+			ClassWriter cw=new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+			cn.accept(cw);
+			return cw.toByteArray();
+		} else if (className.equals("java.awt.Robot")) {
+			ClassReader cr=new ClassReader(classBytes);
+			ClassNode cn=new ClassNode();
+			cr.accept(cn,ClassReader.EXPAND_FRAMES);
+			
+			for (Object o : cn.methods.toArray()) {
+				MethodNode m = (MethodNode) o;
+				if(	m.name.equals("createScreenCapture") 	|| m.name.equals("getPixelColor") ||
+					m.name.equals("keyPress") 				|| m.name.equals("keyRelease") ||
+					m.name.equals("mouseMove")				|| m.name.equals("mousePress") ||
+					m.name.equals("mouseWheel"))
+				{
+					m.instructions.insert(new InsnNode(ARETURN));
+					m.instructions.insert(new InsnNode(ACONST_NULL));
+				}
+			}
+			ClassWriter cw=new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+			cn.accept(cw);
+			return cw.toByteArray();
+		}
+		return classBytes;
 	}
 	
 	/**
